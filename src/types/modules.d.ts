@@ -13,10 +13,6 @@ declare module 'running-at' {
   export default function runningAt(): Promise<Result>;
 }
 
-declare module 'emoji-short-name' {
-  export function find(emoji: string): string;
-}
-
 declare module '@devsnowflake/text-emoji-parser' {
   export function parse(text: string): string;
 } 

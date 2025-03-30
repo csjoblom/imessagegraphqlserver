@@ -13,6 +13,9 @@ A GraphQL server for interacting with the macOS iMessage database.
 
 - macOS (requires access to the Messages app database)
 - [Bun](https://bun.sh/) runtime
+- AppleScript access (used for sending messages via the Messages app)
+- Full Disk Access for Terminal or your chosen IDE (for accessing the Messages database)
+- Automation permissions for Terminal or your chosen IDE to control Messages
 
 ## Installation
 

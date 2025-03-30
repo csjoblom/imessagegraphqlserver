@@ -1,4 +1,8 @@
-import { ApolloServer } from 'apollo-server';
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@apollo/server/express4';
+import express from 'express';
+import http from 'http';
+import cors from 'cors';
 import { typeDefs } from './graphql/typeDefs';
 import { resolvers } from './graphql/resolvers';
 import { Database } from './utils/database';
@@ -14,6 +18,11 @@ interface RunningAtResult {
   port?: number;
 }
 
+// Type for context
+interface ApolloContext {
+  db: Database;
+}
+
 /**
  * Main server entry point
  */
@@ -25,45 +34,68 @@ async function main() {
   // Create the terminal UI
   const { screen, statusBox, ipBox, chatHandleBox } = createUI();
   
-  // Set up Apollo Server with context
-  const server = new ApolloServer({
-    typeDefs,
-    resolvers,
-    context: { db } // Pass database to resolvers
-  });
-  
   try {
-    // Get the IP address for the server
-    const result = await runningAt() as RunningAtResult;
-    const ipv4 = result?.address || 'localhost';
+    // Create Express app and HTTP server
+    const app = express();
+    const httpServer = http.createServer(app);
     const port = 4000;
     
-    // Start the server
-    const { url } = await server.listen(port);
+    // Set up Apollo Server
+    const server = new ApolloServer<ApolloContext>({
+      typeDefs,
+      resolvers
+    });
     
-    // Get the user's chat handle
-    const chatHandle = await getLoggedInUseriMessageHandle(db);
+    // Start the Apollo server
+    await server.start();
     
-    // Update UI with server information
-    ipBox.setContent(`Server running at: ${url}\nIP: ${ipv4}:${port}`);
-    chatHandleBox.setContent(`Current chat handle: ${chatHandle}`);
-    statusBox.setContent(`Server started successfully. GraphQL API available at ${url}`);
+    // Enable CORS
+    app.use(cors());
     
-    // Render the UI
-    screen.render();
+    // Apply middleware to Express
+    app.use('/graphql', express.json(), express.urlencoded({ extended: true }));
+    
+    // Apply Apollo middleware
+    app.use('/graphql', 
+      // @ts-ignore - Ignoring type issues with express middleware compatibility
+      expressMiddleware(server, {
+        context: async () => ({ db })
+      })
+    );
+    
+    // Get server IP address
+    const result = await runningAt() as RunningAtResult;
+    const ipv4 = result?.address || 'localhost';
+    
+    // Start HTTP server
+    httpServer.listen(port, () => {
+      const url = `http://${ipv4}:${port}/graphql`;
+      console.log(`🚀 Server ready at ${url}`);
+      
+      // Get the user's chat handle and update UI
+      getLoggedInUseriMessageHandle(db).then(chatHandle => {
+        ipBox.setContent(`Server running at: ${url}\nIP: ${ipv4}:${port}`);
+        chatHandleBox.setContent(`Current chat handle: ${chatHandle}`);
+        statusBox.setContent(`Server started successfully. GraphQL API available at ${url}`);
+        screen.render();
+      });
+    });
     
     // Setup exit handler
     screen.key(['escape', 'q', 'C-c'], () => {
       statusBox.setContent('Shutting down server...');
       screen.render();
       
-      // Close database connection and exit
-      db.close().then(() => {
-        process.exit(0);
+      // Close server and database connection, then exit
+      server.stop().then(() => {
+        httpServer.close(() => {
+          db.close().then(() => {
+            process.exit(0);
+          });
+        });
       });
     });
     
-    console.log(`🚀 Server running at ${url}`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     statusBox.setContent(`Error starting server: ${errorMessage}`);
