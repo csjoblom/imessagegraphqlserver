@@ -1,5 +1,108 @@
 # iMessage GraphQL Server
 
+A GraphQL server for interacting with the macOS iMessage database.
+
+## Features
+
+- Access your iMessage conversations via GraphQL
+- Query all chats and messages
+- Send new messages via the GraphQL API
+- Terminal UI for monitoring server status
+
+## Requirements
+
+- macOS (requires access to the Messages app database)
+- [Bun](https://bun.sh/) runtime
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/imessagegraphqlserver.git
+cd imessagegraphqlserver
+```
+
+Install dependencies:
+
+```bash
+bun install
+```
+
+## Usage
+
+Start the server:
+
+```bash
+bun start
+```
+
+The GraphQL server will be available at http://localhost:4000.
+
+## GraphQL API
+
+### Queries
+
+- `getChats`: Get a list of all conversations
+- `getChatCounts`: Get message counts for each conversation
+- `getMessages(chatId: String, page: String)`: Get messages from a conversation with optional pagination
+- `sendMessage(chatId: String, message: String)`: Send a message to a conversation
+
+### Example Query
+
+```graphql
+query {
+  getChats {
+    name
+    friendlyName
+  }
+}
+```
+
+```graphql
+query {
+  getMessages(chatId: "+11234567890") {
+    chatter
+    text
+    date
+  }
+}
+```
+
+## Development
+
+### Running Tests
+
+```bash
+bun test
+```
+
+For watch mode:
+
+```bash
+bun test:watch
+```
+
+To generate coverage report:
+
+```bash
+bun test:report
+```
+
+### Building
+
+```bash
+bun run build
+```
+
+## License
+
+ISC
+
+## Notes
+
+This application accesses your iMessage database file and should be used responsibly. It requires macOS and will not work on other operating systems.
+
 ## What is this?
 This repo provides a simple GraphQL API to Apple iMessages when running on a relatively recent Macintosh. As of writing, it has been tested on macOS 12 Monterey. It is intended to be used as a counterpart to other pieces of software such as [Messages For Macintosh](https://github.com/CamHenlin/MessagesForMacintosh)
 
